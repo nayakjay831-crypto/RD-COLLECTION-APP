@@ -73,7 +73,8 @@ label{font-size:13px;font-weight:600;color:#334155}
 <!-- DUE -->
 <div id="tab-due" class="card hidden">
 <h3 style="margin:0">⚠️ Baki Wale - Due List</h3>
-<p class="small">Rule: Due Date 17 hai to 18 se yaha dikhega. Jab tak paisa nahi bharega, naam yahi rahega.</p>
+<p class="small">Rule: Rule: Jiska Due Date beet gaya hai, wo yaha dikhega.
+. Jab tak paisa nahi bharega, naam yahi rahega.</p>
 <div id="dueList"></div>
 <button class="btn btn-blue" onclick="renderDue()">Refresh Karo</button>
 </div>
@@ -126,9 +127,9 @@ document.getElementById('history').innerHTML='<h4>History</h4>'+ (list.map(p=>`<
 }
 function getDueInfo(c){
 let today=new Date();today.setHours(0,0,0,0);
-let startDay=new Date(c.start).getDate();
+let dueDay = c.dueDay || new Date(c.start).getDate();
 // Is mahine ki due date
-let due=new Date(today.getFullYear(),today.getMonth(),startDay);
+let due=new Date(today.getFullYear(),today.getMonth(),dueDay);
 // Agar aaj due se pehle hai to pichle mahine ka check nahi, is mahine ka hi
 let paidThisMonth=payments.some(p=>p.ac==c.ac && new Date(p.date).getFullYear()==today.getFullYear() && new Date(p.date).getMonth()==today.getMonth());
 let isDue = today > due && !paidThisMonth; // 17 ko due to 18 se dikhega = today > due
