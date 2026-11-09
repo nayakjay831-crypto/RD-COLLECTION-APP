@@ -96,8 +96,8 @@ if(t=='jama')document.getElementById('t2').classList.add('active');
 if(t=='due'){document.getElementById('t3').classList.add('active');renderDue();}
 }
 function addCustomer(){
-let c={name:f_name.value.trim(),ac:f_ac.value.trim(),cif:f_cif.value.trim(),mob:f_mob.value.trim(),addr:f_addr.value.trim(),amt:Number(f_amt.value),start:f_start.value};
-if(!c.name||!c.ac||!c.amt||!c.start){alert('Naam, Ac No, Amount, Start Date jaruri hai');return;}
+let c={name:f_name.value.trim(),ac:f_ac.value.trim(),cif:f_cif.value.trim(),mob:f_mob.value.trim(),addr:f_addr.value.trim(),amt:Number(f_amt.value),start:f_start.valuelet c={name:..., ac:..., amt:..., start:..., due:f_due.value}};
+if(!c.name||!c.ac||!c.amt||!c.start||!c.due)){alert('Naam, Ac No, Amount, Start Date jaruri hai');return;}
 if(customers.find(x=>x.ac==c.ac)){alert('Ye Ac No pehle se hai');return;}
 customers.push(c);save();alert('Customer Save Ho Gaya ✅');['f_name','f_ac','f_cif','f_mob','f_addr','f_amt','f_start'].forEach(id=>document.getElementById(id).value='');
 }
