@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RD App - Post Office</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui} body{margin:0;background:#f1f5f9;padding:12px}
+.header{background:#1e3a8a;color:#fff;padding:16px;border-radius:12px;text-align:center}
+.header h1{margin:0;font-size:22px}.header p{margin:4px 0 0;opacity:.9;font-size:13px}
+.tabs{display:flex;gap:8px;margin:14px 0}.tabs button{flex:1;padding:12px;border:0;border-radius:10px;background:#fff;font-weight:700;cursor:pointer}
+.tabs button.active{background:#1e3a8a;color:#fff}
+.card{background:#fff;padding:14px;border-radius:12px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+input,select,textarea{width:100%;padding:11px;margin:6px 0;border:1px solid #cbd5e1;border-radius:9px;font-size:15px}
+label{font-size:13px;font-weight:600;color:#334155}
+.btn{width:100%;padding:13px;border:0;border-radius:10px;background:#16a34a;color:#fff;font-weight:800;font-size:16px;cursor:pointer}
+.btn-blue{background:#2563eb}.row{display:flex;gap:8px}.row>*{flex:1}
+.payType{display:flex;gap:8px}.payType button{flex:1;padding:11px;border:2px solid #e2e8f0;background:#fff;border-radius:9px;font-weight:700}
+.payType button.sel{border-color:#2563eb;background:#eff6ff;color:#2563eb}
+.cust{border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px}
+.cust b{font-size:16px}.due{background:#fef2f2;border:1px solid #fecaca}
+.badge{background:#dc2626;color:#fff;padding:3px 8px;border-radius:20px;font-size:11px}
+.small{font-size:13px;color:#64748b}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="header"><h1>🏦 RD Collection App</h1><p>Post Office Agent - Om</p></div>
+
+<div class="tabs">
+<button id="t1" class="active" onclick="showTab('add')">+ Add Customer</button>
+<button id="t2" onclick="showTab('jama')">₹ Jama Karo</button>
+<button id="t3" onclick="showTab('due')">⚠️ Baki Wale</button>
+</div>
+
+<!-- ADD -->
+<div id="tab-add" class="card">
+<label>Naam *</label><input id="f_name" placeholder="Ex: Rameshbhai Patel">
+<label>Account No *</label><input id="f_ac" placeholder="Ex: 123456789">
+<label>CIF No</label><input id="f_cif" placeholder="Ex: 987654">
+<label>Mobile Number</label><input id="f_mob" placeholder="Ex: 98765 43210">
+<label>Address</label><textarea id="f_addr" placeholder="Gaam / Area"></textarea>
+<div class="row"><div><label>Monthly RD Amount *</label><input id="f_amt" type="number" placeholder="1000"></div>
+<div><label>Start Date *</label><input id="f_start" type="date"></div></div>
+<button class="btn btn-blue" onclick="addCustomer()">Customer Save Karo</button>
+<p class="small">Ek baar save hoga to baar baar dalna nahi padega.</p>
+</div>
+
+<!-- JAMA -->
+<div id="tab-jama" class="card hidden">
+<label>Naam ya Account No Likho</label><input id="search" oninput="doSearch()" placeholder="Naam ya Ac No likho...">
+<div id="searchResult"></div>
+<div id="jamaForm" class="hidden">
+<hr>
+<div id="custInfo"></div>
+<label>Jama Amount</label><input id="j_amt" type="number">
+<label>Jama Date</label><input id="j_date" type="date">
+<label>Kaise Diya?</label>
+<div class="payType">
+<button id="pCash" class="sel" onclick="setPay('Cash')">Cash</button>
+<button id="pCheque" onclick="setPay('Cheque')">Cheque</button>
+<button id="pOnline" onclick="setPay('Online')">Online</button>
+</div>
+<div id="chequeBox" class="hidden">
+<label>Cheque No.</label><input id="j_chq" placeholder="Ex: 000123">
+<label>Bank Ka Naam</label><input id="j_bank" placeholder="Ex: SBI / BOB / HDFC">
+</div>
+<button class="btn" onclick="saveJama()">✅ JAMA KARO</button>
+<div id="history"></div>
+</div>
+</div>
+
+<!-- DUE -->
+<div id="tab-due" class="card hidden">
+<h3 style="margin:0">⚠️ Baki Wale - Due List</h3>
+<p class="small">Rule: Due Date 17 hai to 18 se yaha dikhega. Jab tak paisa nahi bharega, naam yahi rahega.</p>
+<div id="dueList"></div>
+<button class="btn btn-blue" onclick="renderDue()">Refresh Karo</button>
+</div>
+
+<div class="card"><h3 style="margin:0 0 8px">Sab Customer (<span id="totalCount">0</span>)</h3><div id="allList"></div></div>
+
+<script>
+let customers = JSON.parse(localStorage.getItem('rd_customers')||'[]');
+let payments = JSON.parse(localStorage.getItem('rd_payments')||'[]');
+let selectedAc = null, payMode='Cash';
+document.getElementById('j_date').valueAsDate = new Date();
+function save(){localStorage.setItem('rd_customers',JSON.stringify(customers));localStorage.setItem('rd_payments',JSON.stringify(payments));renderAll();renderDue();}
+function showTab(t){
+['add','jama','due'].forEach(x=>document.getElementById('tab-'+x).classList.add('hidden'));
+document.getElementById('tab-'+t).classList.remove('hidden');
+['t1','t2','t3'].forEach(x=>document.getElementById(x).classList.remove('active'));
+if(t=='add')document.getElementById('t1').classList.add('active');
+if(t=='jama')document.getElementById('t2').classList.add('active');
+if(t=='due'){document.getElementById('t3').classList.add('active');renderDue();}
+}
+function addCustomer(){
+let c={name:f_name.value.trim(),ac:f_ac.value.trim(),cif:f_cif.value.trim(),mob:f_mob.value.trim(),addr:f_addr.value.trim(),amt:Number(f_amt.value),start:f_start.value};
+if(!c.name||!c.ac||!c.amt||!c.start){alert('Naam, Ac No, Amount, Start Date jaruri hai');return;}
+if(customers.find(x=>x.ac==c.ac)){alert('Ye Ac No pehle se hai');return;}
+customers.push(c);save();alert('Customer Save Ho Gaya ✅');['f_name','f_ac','f_cif','f_mob','f_addr','f_amt','f_start'].forEach(id=>document.getElementById(id).value='');
+}
+function doSearch(){
+let q=document.getElementById('search').value.toLowerCase().trim();
+let box=document.getElementById('searchResult');if(!q){box.innerHTML='';return;}
+let list=customers.filter(c=>c.name.toLowerCase().includes(q)||c.ac.includes(q));
+box.innerHTML=list.map(c=>`<div class="cust" onclick="openCust('${c.ac}')"><b>${c.name}</b> - Ac: ${c.ac}<br><span class="small">₹${c.amt}/month | Start: ${c.start} | ${c.mob}</span><br><span style="color:#2563eb;font-weight:700">👉 Kholo</span></div>`).join('')||'<p>Koi nahi mila</p>';
+}
+function openCust(ac){
+selectedAc=ac;let c=customers.find(x=>x.ac==ac);
+document.getElementById('jamaForm').classList.remove('hidden');
+document.getElementById('custInfo').innerHTML=`<b style="font-size:18px">${c.name}</b> <br>Ac No: ${c.ac} | CIF: ${c.cif} | Mob: ${c.mob}<br>Monthly: ₹${c.amt} | Start: ${c.start} | Address: ${c.addr}`;
+document.getElementById('j_amt').value=c.amt;renderHistory();
+}
+function setPay(m){payMode=m;['pCash','pCheque','pOnline'].forEach(id=>document.getElementById(id).classList.remove('sel'));if(m=='Cash')pCash.classList.add('sel');if(m=='Cheque')pCheque.classList.add('sel');if(m=='Online')pOnline.classList.add('sel');document.getElementById('chequeBox').classList.toggle('hidden',m!='Cheque');}
+function saveJama(){
+if(!selectedAc){alert('Pehle customer select karo');return;}
+let p={ac:selectedAc,amt:Number(j_amt.value),date:j_date.value,mode:payMode,chq:j_chq.value,bank:j_bank.value};
+if(!p.amt||!p.date){alert('Amount aur Date dalo');return;}
+if(p.mode=='Cheque'&&(!p.chq||!p.bank)){alert('Cheque No aur Bank Naam dalo');return;}
+payments.push(p);save();alert('Jama Ho Gaya ✅ ₹'+p.amt+' - '+p.mode);renderHistory();renderDue();
+}
+function renderHistory(){
+let list=payments.filter(p=>p.ac==selectedAc).sort((a,b)=>a.date.localeCompare(b.date));
+document.getElementById('history').innerHTML='<h4>History</h4>'+ (list.map(p=>`<div class="small" style="padding:8px;border-bottom:1px solid #eee">📅 ${p.date} - ₹${p.amt} - ${p.mode} ${p.mode=='Cheque'?` (Chq: ${p.chq}, Bank: ${p.bank})`:''}</div>`).join('')||'Abhi koi jama nahi');
+}
+function getDueInfo(c){
+let today=new Date();today.setHours(0,0,0,0);
+let startDay=new Date(c.start).getDate();
+// Is mahine ki due date
+let due=new Date(today.getFullYear(),today.getMonth(),startDay);
+// Agar aaj due se pehle hai to pichle mahine ka check nahi, is mahine ka hi
+let paidThisMonth=payments.some(p=>p.ac==c.ac && new Date(p.date).getFullYear()==today.getFullYear() && new Date(p.date).getMonth()==today.getMonth());
+let isDue = today > due && !paidThisMonth; // 17 ko due to 18 se dikhega = today > due
+let daysLate = isDue ? Math.floor((today-due)/(1000*60*60*24)) : 0;
+return {isDue,daysLate,due};
+}
+function renderDue(){
+let dueCustomers=customers.map(c=>({...c,...getDueInfo(c)})).filter(c=>c.isDue);
+document.getElementById('dueList').innerHTML = dueCustomers.length? dueCustomers.map(c=>`<div class="cust due"><b>${c.name}</b> <span class="badge">${c.daysLate} din late</span><br>Ac: ${c.ac} | ₹${c.amt} baki<br>Due thi: ${c.due.toISOString().slice(0,10)} | Mob: ${c.mob}<br><button class="btn btn-blue" style="margin-top:8px" onclick="showTab('jama');document.getElementById('search').value='${c.ac}';doSearch();openCust('${c.ac}')">Abhi Jama Karo</button></div>`).join('') : '<p style="color:green;font-weight:700">✅ Koi baki nahi hai, sab ne bhar diya!</p>';
+}
+function renderAll(){
+document.getElementById('totalCount').innerText=customers.length;
+document.getElementById('allList').innerHTML=customers.map(c=>{let d=getDueInfo(c);return `<div class="cust"><b>${c.name}</b> - ${c.ac} ${d.isDue?'<span class="badge">BAKI</span>':''}<br><span class="small">₹${c.amt} | Start: ${c.start} | ${c.mob}</span></div>`}).join('')||'Abhi koi customer nahi';
+}
+renderAll();renderDue();
+</script>
+</body>
+</html>
